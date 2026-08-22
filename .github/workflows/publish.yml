@@ -66,7 +66,7 @@ jobs:
             # PyPI POST probe: GitLab validates scope BEFORE content.
             # 400 = has write_package_registry (content missing error, nothing written)
             # 403 = lacks write_package_registry
-            PROJECT_ID=$(echo "${GITLAB_NPM_REGISTRY_PATH}" | grep -o '[0-9]\+')
+            PROJECT_ID=$(echo "${GITLAB_NPM_REGISTRY_PATH}" | sed 's|.*/projects/\([0-9]*\)/.*|\1|')
             HTTP_WRITE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 -X POST \
               -H "Authorization: Bearer ${WRITE}" \
               "https://gitlab.com/api/v4/projects/${PROJECT_ID}/packages/pypi")
