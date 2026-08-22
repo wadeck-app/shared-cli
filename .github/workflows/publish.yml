@@ -35,14 +35,14 @@ jobs:
           READ=$(echo "${GITLAB_NPM_READ_TOKEN}" | tr -d '[:space:]')
           [ -z "$READ" ] && echo "::error::GITLAB_NPM_READ_TOKEN is empty" && exit 1
           echo "READ token: ${READ:0:9}*** (length: ${#READ})"
+          # Use -/whoami endpoint: does not depend on any package existing (safe for first publish).
           HTTP_READ=$(curl -s -o /dev/null -w "%{http_code}" \
             -H "Authorization: Bearer ${READ}" \
-            "https:${GITLAB_NPM_REGISTRY_PATH}@wadeck%2fshared-cli")
+            "https:${GITLAB_NPM_REGISTRY_PATH}-/whoami")
           case "$HTTP_READ" in
             200) echo "READ token: read_package_registry OK (HTTP 200)" ;;
             401) echo "::error::GITLAB_NPM_READ_TOKEN invalid or expired (HTTP 401)" ; exit 1 ;;
             403) echo "::error::GITLAB_NPM_READ_TOKEN lacks read_package_registry scope (HTTP 403)" ; exit 1 ;;
-            404) echo "::error::GITLAB_NPM_READ_TOKEN has no visibility to this project (HTTP 404)" ; exit 1 ;;
             *)   echo "::error::GITLAB_NPM_READ_TOKEN unexpected HTTP ${HTTP_READ}" ; exit 1 ;;
           esac
 
