@@ -1,8 +1,9 @@
-name: Publish @wadeck-app/shared-cli
+name: CI / Publish @wadeck-app/shared-cli
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
     inputs:
       version:
@@ -14,12 +15,34 @@ on:
         required: false
         default: 'false'
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
-  publish:
+  build-and-test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm run build
+
+      - run: npm test
+
+  publish:
+    needs: build-and-test
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
@@ -43,8 +66,6 @@ jobs:
         run: npm pkg set version="${{ steps.version.outputs.version }}"
 
       - run: npm run build
-
-      - run: npm test
 
       - name: Configure auth for GitHub Packages
         run: |
