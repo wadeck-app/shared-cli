@@ -1,18 +1,18 @@
-# @wadeck/shared-cli
+# @wadeck-app/shared-cli
 
 Shared infrastructure for Wadeck CLIs (flow-cli, task-cli, violations-cli). Provides config directory resolution, auto-update scheduling, hook dispatch, and version validation.
 
 ## Installation
 
 ```
-npm install @wadeck/shared-cli
+npm install @wadeck-app/shared-cli
 ```
 
 Add to `~/.npmrc` (see `docs/npmrc.example`):
 
 ```
-@wadeck:registry=https://gitlab.com/api/v4/packages/npm/
-//gitlab.com/api/v4/packages/npm/:_authToken=<your-read-token>
+@wadeck-app:registry=https://npm.pkg.github.com/
+//npm.pkg.github.com/:_authToken=<your GitHub PAT with read:packages scope>
 ```
 
 ## Exports
@@ -22,7 +22,7 @@ Add to `~/.npmrc` (see `docs/npmrc.example`):
 Resolves `~/.config/<appName>` on all platforms. Respects `XDG_CONFIG_HOME`.
 
 ```ts
-import { ConfigDir } from '@wadeck/shared-cli';
+import { ConfigDir } from '@wadeck-app/shared-cli';
 
 const dir = ConfigDir.get('flow');          // ~/.config/flow
 ConfigDir.migrateIfNeeded('flow');          // one-time migration from %APPDATA%\flow or ~/.flow
@@ -35,7 +35,7 @@ Call `migrateIfNeeded` once at startup, before any config reads.
 Schedules a background update by spawning a detached Node process running the updater bundle. Reads the result on next startup.
 
 ```ts
-import { UpdateManager } from '@wadeck/shared-cli';
+import { UpdateManager } from '@wadeck-app/shared-cli';
 
 const mgr = new UpdateManager('@wadeck/flow-cli');
 mgr.scheduleBackgroundUpdate(__filename, 'flow-updater.cjs');
@@ -51,7 +51,7 @@ The updater bundle receives `UPDATER_PKG_NAME` and `LAUNCHER_BUNDLE_OVERRIDE` vi
 Dispatches lifecycle events to user-configured `cli` or `http` hooks. Hook failures are swallowed by default; pass `onError` to log them.
 
 ```ts
-import { HookDispatcher } from '@wadeck/shared-cli';
+import { HookDispatcher } from '@wadeck-app/shared-cli';
 
 const dispatcher = new HookDispatcher({ onFlowEnd: [{ type: 'http', url: 'https://...' }] });
 await dispatcher.dispatch('onFlowEnd', { executionId: '123', status: 'success' }, console.error);
@@ -64,7 +64,7 @@ Payload fields are forwarded to CLI hooks as `UPPER_CASE` env vars. The daemon's
 Validates that a string matches semver format (`\d+\.\d+\.\d+` with optional pre-release/build suffix). Throws on invalid input.
 
 ```ts
-import { VersionValidation } from '@wadeck/shared-cli';
+import { VersionValidation } from '@wadeck-app/shared-cli';
 
 VersionValidation.validate('2026.08.20-142-a3f2b1c4'); // ok
 VersionValidation.validate('dev');                      // throws Error

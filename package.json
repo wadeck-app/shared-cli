@@ -1,9 +1,13 @@
 {
-	"name": "@wadeck/shared-cli",
+	"name": "@wadeck-app/shared-cli",
 	"version": "0.1.0",
 	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/wadeck-app/shared-cli.git"
+	},
 	"publishConfig": {
-		"registry": "https://gitlab.com/api/v4/packages/npm/"
+		"@wadeck-app:registry": "https://npm.pkg.github.com/"
 	},
 	"exports": {
 		".": {
