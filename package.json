@@ -43,7 +43,7 @@
 		"tsconfig.cjs.json"
 	],
 	"scripts": {
-		"build": "tsc && tsc -p tsconfig.cjs.json",
+		"build": "tsc && tsc -p tsconfig.cjs.json && printf '{\"type\":\"commonjs\"}\\n' > dist/cjs/package.json",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"preversion": "node -e \"if (!process.env.CI) { console.error('ERROR: version is CI-managed. Do not run npm version manually.'); process.exit(1); }\""
