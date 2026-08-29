@@ -84,3 +84,5 @@ jobs:
 
       - name: Publish @wadeck-app/shared-cli
         run: npm publish --tag ${{ steps.version.outputs.dist_tag }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
