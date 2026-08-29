@@ -12,32 +12,38 @@
 	"exports": {
 		".": {
 			"import": "./dist/index.js",
+			"require": "./dist/cjs/index.js",
 			"types": "./dist/index.d.ts"
 		},
 		"./ConfigDir": {
 			"import": "./dist/ConfigDir.js",
+			"require": "./dist/cjs/ConfigDir.js",
 			"types": "./dist/ConfigDir.d.ts"
 		},
 		"./UpdateManager": {
 			"import": "./dist/UpdateManager.js",
+			"require": "./dist/cjs/UpdateManager.js",
 			"types": "./dist/UpdateManager.d.ts"
 		},
 		"./HookDispatcher": {
 			"import": "./dist/HookDispatcher.js",
+			"require": "./dist/cjs/HookDispatcher.js",
 			"types": "./dist/HookDispatcher.d.ts"
 		},
 		"./VersionValidation": {
 			"import": "./dist/VersionValidation.js",
+			"require": "./dist/cjs/VersionValidation.js",
 			"types": "./dist/VersionValidation.d.ts"
 		}
 	},
-	"main": "./dist/index.js",
+	"main": "./dist/cjs/index.js",
 	"types": "./dist/index.d.ts",
 	"files": [
-		"dist"
+		"dist",
+		"tsconfig.cjs.json"
 	],
 	"scripts": {
-		"build": "tsc",
+		"build": "tsc && tsc -p tsconfig.cjs.json",
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"preversion": "node -e \"if (!process.env.CI) { console.error('ERROR: version is CI-managed. Do not run npm version manually.'); process.exit(1); }\""
