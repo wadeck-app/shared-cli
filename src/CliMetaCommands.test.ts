@@ -90,6 +90,23 @@ describe('cliUpdateCommand', () => {
 		exitSpy.mockRestore();
 	});
 
+	it('warns when --force is passed (it is not needed)', async () => {
+		tmpDir = mkdtempSync(join(tmpdir(), 'cli-meta-'));
+		const updaterPath = join(tmpDir, 'updater.cjs');
+		writeFileSync(updaterPath, '');
+		const { spawn } = await import('node:child_process');
+		const mockChild = { on: vi.fn((event: string, cb: (code: number) => void) => { if (event === 'close') cb(0); }), };
+		vi.mocked(spawn).mockReturnValue(mockChild as never);
+		const { cliUpdateCommand } = await import('./CliMetaCommands.js');
+		const err: string[] = [];
+		vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+		vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+		await cliUpdateCommand(updaterPath, '@test/pkg', { rawArgs: ['--force'] });
+
+		expect(err.join('')).toContain('--force is not needed');
+	});
+
 	it('spawns updater with UPDATER_FORCE=1 when file exists', async () => {
 		tmpDir = mkdtempSync(join(tmpdir(), 'cli-meta-'));
 		const updaterPath = join(tmpDir, 'updater.cjs');

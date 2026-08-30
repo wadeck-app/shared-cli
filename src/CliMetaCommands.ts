@@ -54,7 +54,14 @@ export async function cliVersionCommand(pkgName: string, current: string, channe
 	}
 }
 
-export async function cliUpdateCommand(updaterPath: string, pkgName: string): Promise<void> {
+export async function cliUpdateCommand(
+	updaterPath: string,
+	pkgName: string,
+	opts?: { rawArgs?: string[] },
+): Promise<void> {
+	if (opts?.rawArgs?.includes('--force')) {
+		process.stderr.write(`[warning] --force is not needed — 'cli update' always checks immediately\n`);
+	}
 	if (!existsSync(updaterPath)) {
 		process.stderr.write(`Updater not found: ${updaterPath}\n`);
 		process.exit(1);
