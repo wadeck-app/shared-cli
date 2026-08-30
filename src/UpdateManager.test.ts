@@ -30,10 +30,51 @@ describe('UpdateManager.scheduleBackgroundUpdate', () => {
 	it('does nothing when no updater bundle exists in the bundle dir', () => {
 		const mgr = new UpdateManager('@wadeck/flow-cli', tmpDir);
 
-		// bundlePath is inside tmpDir; no updater CJS files exist there
 		mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'flow.cjs'));
 
 		expect(vi.mocked(spawn)).not.toHaveBeenCalled();
+	});
+
+	it('spawns the named updater when it exists', () => {
+		const updaterPath = path.join(tmpDir, 'queue-updater.cjs');
+		fs.writeFileSync(updaterPath, '');
+		const bundlePath = path.join(tmpDir, 'queue.cjs');
+		const mockChild = { unref: vi.fn() };
+		vi.mocked(spawn).mockReturnValue(mockChild as never);
+
+		const mgr = new UpdateManager('@wadeck-app/queue-cli', tmpDir);
+		mgr.scheduleBackgroundUpdate(bundlePath, 'queue-updater.cjs');
+
+		expect(vi.mocked(spawn)).toHaveBeenCalledWith(
+			process.execPath,
+			[updaterPath],
+			expect.objectContaining({
+				detached: true,
+				stdio: 'ignore',
+				windowsHide: true,
+				env: expect.objectContaining({
+					UPDATER_PKG_NAME: '@wadeck-app/queue-cli',
+					LAUNCHER_BUNDLE_OVERRIDE: bundlePath,
+				}),
+			}),
+		);
+		expect(mockChild.unref).toHaveBeenCalled();
+	});
+
+	it('falls back to flow-updater.cjs when named updater is absent', () => {
+		const fallbackPath = path.join(tmpDir, 'flow-updater.cjs');
+		fs.writeFileSync(fallbackPath, '');
+		const mockChild = { unref: vi.fn() };
+		vi.mocked(spawn).mockReturnValue(mockChild as never);
+
+		const mgr = new UpdateManager('@wadeck-app/queue-cli', tmpDir);
+		mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs');
+
+		expect(vi.mocked(spawn)).toHaveBeenCalledWith(
+			process.execPath,
+			[fallbackPath],
+			expect.anything(),
+		);
 	});
 });
 

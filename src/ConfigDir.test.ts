@@ -21,18 +21,10 @@ describe('ConfigDir.get', () => {
 		expect(ConfigDir.get('myapp')).toBe(path.join('/custom/config', 'myapp'));
 	});
 
-	it('returns ~/.config/appName on Linux when XDG_CONFIG_HOME is not set', () => {
+	it('returns a path ending in .config/myapp when XDG_CONFIG_HOME is not set', () => {
 		vi.stubEnv('XDG_CONFIG_HOME', '');
 
 		const result = ConfigDir.get('myapp');
-		expect(result).toMatch(/[/\\]\.config[/\\]myapp$/);
-	});
-
-	it('returns ~/.config/appName on Windows (no APPDATA branch)', () => {
-		vi.stubEnv('XDG_CONFIG_HOME', '');
-
-		const result = ConfigDir.get('myapp');
-		// Windows uses os.homedir()/.config/myapp — same as other platforms
 		expect(result).toMatch(/[/\\]\.config[/\\]myapp$/);
 	});
 
