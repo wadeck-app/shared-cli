@@ -34,6 +34,31 @@
 			"import": "./dist/VersionValidation.js",
 			"require": "./dist/cjs/VersionValidation.js",
 			"types": "./dist/VersionValidation.d.ts"
+		},
+		"./Duration": {
+			"import": "./dist/Duration.js",
+			"require": "./dist/cjs/Duration.js",
+			"types": "./dist/Duration.d.ts"
+		},
+		"./CliLogger": {
+			"import": "./dist/CliLogger.js",
+			"require": "./dist/cjs/CliLogger.js",
+			"types": "./dist/CliLogger.d.ts"
+		},
+		"./NpmRunner": {
+			"import": "./dist/NpmRunner.js",
+			"require": "./dist/cjs/NpmRunner.js",
+			"types": "./dist/NpmRunner.d.ts"
+		},
+		"./CliMetaCommands": {
+			"import": "./dist/CliMetaCommands.js",
+			"require": "./dist/cjs/CliMetaCommands.js",
+			"types": "./dist/CliMetaCommands.d.ts"
+		},
+		"./ChannelConfig": {
+			"import": "./dist/ChannelConfig.js",
+			"require": "./dist/cjs/ChannelConfig.js",
+			"types": "./dist/ChannelConfig.d.ts"
 		}
 	},
 	"main": "./dist/cjs/index.js",

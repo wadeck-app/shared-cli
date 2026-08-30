@@ -57,8 +57,8 @@ describe('UpdateManager.readAndClearState', () => {
 		expect(mgr.readAndClearState()).toBeNull();
 	});
 
-	it('reads and clears a terminal success state', () => {
-		const state: UpdateState = {
+	it('reads and clears a terminal success state (legacy newVersion)', () => {
+		const state = {
 			status: 'success',
 			newVersion: '2.0.0',
 			previousVersion: '1.0.0',
@@ -70,8 +70,20 @@ describe('UpdateManager.readAndClearState', () => {
 		const mgr = new UpdateManager('@wadeck/flow-cli', tmpDir);
 		const result = mgr.readAndClearState();
 
-		expect(result).toMatchObject({ status: 'success', newVersion: '2.0.0' });
-		// File must be removed after reading a terminal state
+		// newVersion is normalized to targetVersion on read
+		expect(result).toMatchObject({ status: 'success', newVersion: '2.0.0', targetVersion: '2.0.0' });
+		expect(fs.existsSync(stateFile)).toBe(false);
+	});
+
+	it('normalizes legacy update-failed status to failed', () => {
+		const state = { status: 'update-failed', newVersion: '2.0.0', reason: 'npm error', timestamp: Date.now() };
+		const stateFile = path.join(tmpDir, 'update-state.json');
+		fs.writeFileSync(stateFile, JSON.stringify(state), 'utf-8');
+
+		const mgr = new UpdateManager('@wadeck/flow-cli', tmpDir);
+		const result = mgr.readAndClearState();
+
+		expect(result).toMatchObject({ status: 'failed', targetVersion: '2.0.0', error: 'npm error' });
 		expect(fs.existsSync(stateFile)).toBe(false);
 	});
 

@@ -5,12 +5,16 @@ import * as path from 'node:path';
 import { ConfigDir } from './ConfigDir.js';
 
 export interface UpdateState {
-	status: 'success' | 'rolled-back' | 'update-failed' | 'applying';
-	newVersion?: string;
-	previousVersion?: string;
+	// 'failed' replaces legacy 'update-failed'; both are accepted on read.
+	// 'applying' is legacy (shared-updater no longer writes it); kept for compat.
+	status: 'update-available' | 'success' | 'failed' | 'rolled-back' | 'applying' | 'update-failed';
+	currentVersion?: string;
 	targetVersion?: string;
-	reason?: string;
-	timestamp: string;
+	newVersion?: string;        // @deprecated — use targetVersion
+	previousVersion?: string;
+	error?: string;
+	reason?: string;            // @deprecated — use error
+	timestamp: number | string;
 }
 
 export class UpdateManager {
@@ -46,13 +50,13 @@ export class UpdateManager {
 		try {
 			const raw = fs.readFileSync(stateFile, 'utf-8');
 			const state = JSON.parse(raw) as UpdateState;
-			// Only clear terminal states (not 'applying' -- the updater is still running)
+			// Normalize legacy field names written by old updaters.
+			if (state.status === 'update-failed') state.status = 'failed';
+			if (!state.targetVersion && state.newVersion) state.targetVersion = state.newVersion;
+			if (!state.error && state.reason) state.error = state.reason;
+			// Only clear terminal states ('applying' means the updater is still running).
 			if (state.status !== 'applying') {
-				try {
-					fs.unlinkSync(stateFile);
-				} catch {
-					// ignore
-				}
+				try { fs.unlinkSync(stateFile); } catch { /* ignore */ }
 			}
 			return state;
 		} catch {
