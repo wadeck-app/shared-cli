@@ -147,3 +147,27 @@ describe('cliRollbackCommand', () => {
 		exitSpy.mockRestore();
 	});
 });
+
+describe('warnUnknownArgs', () => {
+	it('warns for each unrecognized argument', async () => {
+		const { warnUnknownArgs } = await import('./CliMetaCommands.js');
+		const err: string[] = [];
+		vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+
+		warnUnknownArgs(['--follow', '--unknown', '--foo'], ['--follow'], 'cli logs');
+
+		expect(err.join('')).toContain("unknown argument '--unknown'");
+		expect(err.join('')).toContain("unknown argument '--foo'");
+		expect(err.join('')).not.toContain("'--follow'");
+	});
+
+	it('does nothing when all args are recognized', async () => {
+		const { warnUnknownArgs } = await import('./CliMetaCommands.js');
+		const err: string[] = [];
+		vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+
+		warnUnknownArgs(['--follow'], ['--follow'], 'cli logs');
+
+		expect(err).toHaveLength(0);
+	});
+});

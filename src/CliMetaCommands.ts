@@ -4,6 +4,17 @@ import { spawn } from 'node:child_process';
 import { execNpm } from './NpmRunner.js';
 import { VersionValidation } from './VersionValidation.js';
 
+/**
+ * Warns about unrecognized arguments passed to a CLI subcommand.
+ * Prevents silent failure when users pass typos or unsupported flags.
+ */
+export function warnUnknownArgs(rawArgs: string[], knownArgs: string[], cmdName: string): void {
+	const unknown = rawArgs.filter(a => !knownArgs.includes(a));
+	for (const arg of unknown) {
+		process.stderr.write(`[warning] ${cmdName}: unknown argument '${arg}' — ignored\n`);
+	}
+}
+
 export async function cliLogsCommand(configDir: string, opts: { follow?: boolean } = {}): Promise<void> {
 	const today = new Date().toISOString().slice(0, 10);
 	const logFile = join(configDir, 'logs', `${today}.ndjson`);
