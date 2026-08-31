@@ -10,4 +10,11 @@ describe('parseDuration', () => {
 	it('parses decimal', () => expect(parseDuration('1.5h')).toBe(5_400_000));
 	it('throws on invalid', () => expect(() => parseDuration('abc')).toThrow('Invalid duration'));
 	it('throws on bare number', () => expect(() => parseDuration('100')).toThrow('Invalid duration'));
+	it('returns 0 for "0ms"', () => expect(parseDuration('0ms')).toBe(0));
+	it('throws for negative values', () => expect(() => parseDuration('-1s')).toThrow());
+	it('handles very large values without overflow', () => {
+		expect(parseDuration('999999h')).toBe(999999 * 3600 * 1000);
+	});
+	it('throws for empty string', () => expect(() => parseDuration('')).toThrow());
+	it('throws for number without unit', () => expect(() => parseDuration('42')).toThrow());
 });

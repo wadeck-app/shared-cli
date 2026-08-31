@@ -26,6 +26,7 @@ const SERVER_SCRIPT = join(__dirname, 'mock-registry-server.mjs');
 interface RegistryState {
 	[pkgName: string]: {
 		channels: Record<string, string>;
+		installError?: boolean;
 	};
 }
 
@@ -55,6 +56,17 @@ export class MockRegistry {
 	setLatestVersion(pkg: string, version: string, channel = 'latest'): void {
 		if (!this.state[pkg]) this.state[pkg] = { channels: {} };
 		this.state[pkg]!.channels[channel] = version;
+		this.writeState();
+	}
+
+	/**
+	 * Configure the tarball endpoint for a package to return HTTP 500.
+	 * When shouldFail is true, npm install will fail with a registry error.
+	 * Writes state synchronously.
+	 */
+	setInstallError(pkg: string, shouldFail: boolean): void {
+		if (!this.state[pkg]) this.state[pkg] = { channels: {} };
+		this.state[pkg]!.installError = shouldFail ? true : undefined;
 		this.writeState();
 	}
 

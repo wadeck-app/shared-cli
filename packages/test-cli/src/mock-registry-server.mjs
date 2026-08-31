@@ -128,6 +128,13 @@ const server = createServer((req, res) => {
 		const pkg = findPackage(state, tarballMatch[1]);
 		if (!pkg) { res.writeHead(404); res.end('Not found'); return; }
 
+		// Simulate install error when configured (for testing npm install failure paths)
+		if (pkg.data.installError) {
+			res.writeHead(500, { 'Content-Type': 'application/json' });
+			res.end(JSON.stringify({ error: 'simulated install error' }));
+			return;
+		}
+
 		const { name } = pkg;
 		const baseName = name.startsWith('@') ? name.split('/')[1] : name;
 		// Extract version from filename: <baseName>-<version>.tgz
