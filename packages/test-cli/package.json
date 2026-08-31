@@ -1,0 +1,25 @@
+{
+	"name": "@wadeck-app/test-cli",
+	"version": "0.1.0",
+	"description": "Integration test surface for @wadeck-app/shared-cli — workspace package",
+	"type": "module",
+	"private": true,
+	"bin": {
+		"test-cli": "./dist/TestCli.js"
+	},
+	"scripts": {
+		"build": "tsc",
+		"test": "vitest run",
+		"start": "tsx src/TestCli.ts"
+	},
+	"dependencies": {
+		"@wadeck-app/shared-cli": "*",
+		"@wadeck-app/shared-updater": "file:../../../shared-updater"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"tsx": "^4.0.0",
+		"typescript": "^7.0.0",
+		"vitest": "^4.0.14"
+	}
+}
