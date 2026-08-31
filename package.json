@@ -4,6 +4,6 @@
 	"scripts": {
 		"build": "npm run build -w @wadeck-app/shared-cli",
 		"typecheck": "npm run typecheck -w @wadeck-app/shared-cli",
-		"test": "npm test --workspaces --if-present"
+		"test": "npm test -w @wadeck-app/shared-cli && npm test -w @wadeck-app/test-cli"
 	}
 }

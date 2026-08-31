@@ -14,7 +14,7 @@
 	},
 	"dependencies": {
 		"@wadeck-app/shared-cli": "*",
-		"@wadeck-app/shared-updater": "file:../../../shared-updater"
+		"@wadeck-app/shared-updater": "*"
 	},
 	"devDependencies": {
 		"@types/node": "^24.0.0",
