@@ -1,4 +1,6 @@
 export { ConfigDir } from './ConfigDir.js';
+export { runSelfCheck } from './SelfCheck.js';
+export type { SelfCheckResult } from './SelfCheck.js';
 export { HookDispatcher } from './HookDispatcher.js';
 export type { CliHook, HookConfig, HookEvent, HttpHook } from './HookDispatcher.js';
 export { UpdateManager } from './UpdateManager.js';
