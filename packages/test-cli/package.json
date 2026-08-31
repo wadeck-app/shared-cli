@@ -13,8 +13,7 @@
 		"start": "tsx src/TestCli.ts"
 	},
 	"dependencies": {
-		"@wadeck-app/shared-cli": "*",
-		"@wadeck-app/shared-updater": "*"
+		"@wadeck-app/shared-cli": "*"
 	},
 	"devDependencies": {
 		"@types/node": "^24.0.0",
