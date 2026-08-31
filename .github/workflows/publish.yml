@@ -70,7 +70,7 @@ jobs:
           breaking-input: ${{ github.event.inputs.breaking || 'false' }}
 
       - name: Inject version
-        run: npm pkg set version="${{ steps.version.outputs.version }}"
+        run: npm pkg set version="${{ steps.version.outputs.version }}" -w @wadeck-app/shared-cli
 
       - run: npm run build
 
@@ -82,6 +82,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish @wadeck-app/shared-cli
-        run: npm publish --tag ${{ steps.version.outputs.dist_tag }}
+        run: npm publish -w @wadeck-app/shared-cli --tag ${{ steps.version.outputs.dist_tag }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
