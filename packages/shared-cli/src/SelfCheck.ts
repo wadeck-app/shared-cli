@@ -16,7 +16,12 @@ export async function runSelfCheck(
   let allOk = true;
 
   for (const check of checks) {
-    const result = await check();
+    let result: SelfCheckResult = { name: '(threw)', ok: false, detail: 'threw an error' };
+    try {
+      result = await check();
+    } catch (err) {
+      result = { name: '(threw)', ok: false, detail: err instanceof Error ? err.message : String(err) };
+    }
     if (!result.ok) allOk = false;
     if (!quiet || !result.ok) {
       const prefix = result.ok ? '[ok] ' : '[fail]';

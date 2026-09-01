@@ -90,4 +90,15 @@ describe('runSelfCheck', () => {
 
     expect(ran).toEqual(['a', 'b', 'c']); // all ran despite 'a' failing
   });
+
+  it('handles check that throws — treats as failure', async () => {
+    const mockExit = vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('exit'); });
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+
+    await expect(runSelfCheck([
+      async () => { throw new Error('check crashed'); },
+    ])).rejects.toThrow();
+
+    expect(mockExit).toHaveBeenCalledWith(1);
+  });
 });

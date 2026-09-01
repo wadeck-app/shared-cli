@@ -1,10 +1,14 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 vi.mock('./NpmRunner.js', () => ({ execNpm: vi.fn() }));
 vi.mock('node:child_process', () => ({ spawn: vi.fn() }));
+vi.mock('node:fs', async () => {
+	const actual = await vi.importActual<typeof import('node:fs')>('node:fs');
+	return { ...actual, watchFile: vi.fn(), unwatchFile: vi.fn() };
+});
 
 let tmpDir: string;
 afterEach(() => {
@@ -35,6 +39,90 @@ describe('cliLogsCommand', () => {
 		vi.spyOn(process.stdout, 'write').mockImplementation((s) => { out.push(String(s)); return true; });
 		await cliLogsCommand(tmpDir, { follow: false });
 		expect(out.join('')).toContain('"msg":"test"');
+	});
+
+	it('follow mode: shows newly appended content when file changes', async () => {
+		tmpDir = mkdtempSync(join(tmpdir(), 'cli-meta-'));
+		const today = new Date().toISOString().slice(0, 10);
+		const logsDir = join(tmpDir, 'logs');
+		const { mkdirSync } = await import('node:fs');
+		mkdirSync(logsDir, { recursive: true });
+		const logFile = join(logsDir, `${today}.ndjson`);
+		const initial = '{"ts":"2026-01-01","msg":"first"}\n';
+		writeFileSync(logFile, initial);
+
+		const fs = await import('node:fs');
+		let watchCb: (() => void) | undefined;
+		vi.spyOn(fs, 'watchFile').mockImplementation((_f: any, _opts: any, cb: any) => {
+			watchCb = cb;
+			return {} as any;
+		});
+		vi.spyOn(fs, 'unwatchFile').mockImplementation(() => {});
+
+		let sigintHandler: (() => void) | undefined;
+		vi.spyOn(process as any, 'on').mockImplementation((event: string, cb: () => void) => {
+			if (event === 'SIGINT') sigintHandler = cb;
+			return process;
+		});
+
+		const { cliLogsCommand } = await import('./CliMetaCommands.js');
+		const out: string[] = [];
+		vi.spyOn(process.stdout, 'write').mockImplementation((s) => { out.push(String(s)); return true; });
+
+		const promise = cliLogsCommand(tmpDir, { follow: true });
+
+		// Append new content and simulate file-change event
+		const appended = '{"ts":"2026-01-02","msg":"appended"}\n';
+		writeFileSync(logFile, initial + appended);
+		watchCb!();
+
+		// Resolve the follow-mode promise via the captured SIGINT handler
+		sigintHandler!();
+		await promise;
+
+		expect(out.join('')).toContain('"msg":"appended"');
+	});
+
+	it('follow mode: resets offset when file shrinks (rotation)', async () => {
+		tmpDir = mkdtempSync(join(tmpdir(), 'cli-meta-'));
+		const today = new Date().toISOString().slice(0, 10);
+		const logsDir = join(tmpDir, 'logs');
+		const { mkdirSync } = await import('node:fs');
+		mkdirSync(logsDir, { recursive: true });
+		const logFile = join(logsDir, `${today}.ndjson`);
+		const initial = '{"ts":"2026-01-01","msg":"before-rotation"}\n';
+		writeFileSync(logFile, initial);
+
+		const fs = await import('node:fs');
+		let watchCb: (() => void) | undefined;
+		vi.spyOn(fs, 'watchFile').mockImplementation((_f: any, _opts: any, cb: any) => {
+			watchCb = cb;
+			return {} as any;
+		});
+		vi.spyOn(fs, 'unwatchFile').mockImplementation(() => {});
+
+		let sigintHandler: (() => void) | undefined;
+		vi.spyOn(process as any, 'on').mockImplementation((event: string, cb: () => void) => {
+			if (event === 'SIGINT') sigintHandler = cb;
+			return process;
+		});
+
+		const { cliLogsCommand } = await import('./CliMetaCommands.js');
+		const out: string[] = [];
+		vi.spyOn(process.stdout, 'write').mockImplementation((s) => { out.push(String(s)); return true; });
+
+		const promise = cliLogsCommand(tmpDir, { follow: true });
+
+		// Overwrite with shorter content (simulate rotation/truncation)
+		const rotated = '{"ts":"2026-01-03","msg":"after-rotation"}\n';
+		writeFileSync(logFile, rotated);
+		watchCb!();
+
+		sigintHandler!();
+		await promise;
+
+		// After rotation, offset resets to 0 so the new content is read from start
+		expect(out.join('')).toContain('"msg":"after-rotation"');
 	});
 });
 
@@ -73,6 +161,20 @@ describe('cliVersionCommand', () => {
 
 		await expect(cliVersionCommand('@test/pkg', '1.0.0')).resolves.toBeUndefined();
 		expect(err.join('')).toContain('Failed to fetch');
+	});
+
+	it('queries dist-tags.edge when channel is edge', async () => {
+		const { execNpm } = await import('./NpmRunner.js');
+		vi.mocked(execNpm).mockReturnValue('"1.0.0"');
+		const { cliVersionCommand } = await import('./CliMetaCommands.js');
+		vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+
+		await cliVersionCommand('@test/pkg', '1.0.0', 'edge');
+
+		expect(vi.mocked(execNpm)).toHaveBeenCalledWith(
+			expect.arrayContaining(['view', '@test/pkg', 'dist-tags.edge']),
+			expect.anything(),
+		);
 	});
 });
 
@@ -145,6 +247,28 @@ describe('cliRollbackCommand', () => {
 		vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
 		await expect(cliRollbackCommand('@test/pkg', tmpDir)).rejects.toThrow('exit');
 		exitSpy.mockRestore();
+	});
+
+	it('happy path: calls execNpm install, removes state file, and shows success', async () => {
+		tmpDir = mkdtempSync(join(tmpdir(), 'cli-meta-'));
+		const stateFile = join(tmpDir, 'update-state.json');
+		writeFileSync(stateFile, JSON.stringify({ previousVersion: '1.0.0' }));
+
+		const { execNpm } = await import('./NpmRunner.js');
+		vi.mocked(execNpm).mockReturnValue('');
+
+		const { cliRollbackCommand } = await import('./CliMetaCommands.js');
+		const out: string[] = [];
+		vi.spyOn(process.stdout, 'write').mockImplementation((s) => { out.push(String(s)); return true; });
+
+		await cliRollbackCommand('@test/pkg', tmpDir);
+
+		expect(vi.mocked(execNpm)).toHaveBeenCalledWith(
+			['install', '-g', '@test/pkg@1.0.0'],
+			expect.anything(),
+		);
+		expect(existsSync(stateFile)).toBe(false);
+		expect(out.join('')).toContain('Rolled back to 1.0.0');
 	});
 });
 

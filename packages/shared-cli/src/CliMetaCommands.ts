@@ -38,7 +38,9 @@ export async function cliLogsCommand(configDir: string, opts: { follow?: boolean
 		watchFile(logFile, { interval: 250 }, () => {
 			if (!existsSync(logFile)) return;
 			const size = statSync(logFile).size;
-			if (size <= offset) return;
+			// Reset offset if file was truncated or rotated to avoid stale position
+			if (size < offset) offset = 0;
+			if (size === offset) return;
 			const buf = Buffer.alloc(size - offset);
 			const fd = openSync(logFile, 'r');
 			readSync(fd, buf, 0, buf.length, offset);
