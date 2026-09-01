@@ -30,7 +30,7 @@ describe('logCliInvocation', () => {
 
 		expect(existsSync(logFile)).toBe(true);
 
-		const line = JSON.parse(readFileSync(logFile, 'utf8').trim()) as Record<string, unknown>;
+		const line: Record<string, unknown> = JSON.parse(readFileSync(logFile, 'utf8').trim());
 		expect(typeof line['ts']).toBe('string');
 		expect(line['level']).toBe('info');
 		expect(line['msg']).toContain('my-cmd');
@@ -58,7 +58,7 @@ describe('logCliInvocation', () => {
 
 		const today = new Date().toISOString().slice(0, 10);
 		const logFile = join(dir, 'logs', `${today}.ndjson`);
-		const line = JSON.parse(readFileSync(logFile, 'utf8').trim()) as Record<string, unknown>;
+		const line: Record<string, unknown> = JSON.parse(readFileSync(logFile, 'utf8').trim());
 		expect(line['msg']).toBe('cmd: bare-cmd');
 	});
 });

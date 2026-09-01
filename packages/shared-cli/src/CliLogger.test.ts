@@ -39,7 +39,7 @@ describe('logCliInvocation', () => {
 		logCliInvocation(tmpDir, 'test', ['cmd']);
 		const today = new Date().toISOString().slice(0, 10);
 		const content = readFileSync(join(tmpDir, 'logs', `${today}.ndjson`), 'utf8');
-		const entry = JSON.parse(content.trim().split('\n')[0]!) as Record<string, unknown>;
+		const entry: Record<string, unknown> = JSON.parse(content.trim().split('\n')[0]!);
 		expect(() => new Date(entry['ts'] as string).toISOString()).not.toThrow();
 		expect(new Date(entry['ts'] as string).getTime()).toBeGreaterThan(0);
 		// Format matches YYYY-MM-DDTHH:mm:ss.sssZ

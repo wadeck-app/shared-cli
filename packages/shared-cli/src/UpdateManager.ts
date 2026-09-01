@@ -14,7 +14,8 @@ export interface UpdateState {
 	previousVersion?: string;
 	error?: string;
 	reason?: string;            // @deprecated — use error
-	timestamp: number | string;
+	// Call-site note: old updater versions may write a string timestamp in JSON; coerce with Number(state.timestamp) if needed.
+	timestamp: number;
 }
 
 export class UpdateManager {

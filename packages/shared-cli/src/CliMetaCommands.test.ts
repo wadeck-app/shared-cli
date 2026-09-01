@@ -55,12 +55,13 @@ describe('cliLogsCommand', () => {
 		let watchCb: (() => void) | undefined;
 		vi.spyOn(fs, 'watchFile').mockImplementation((_f: any, _opts: any, cb: any) => {
 			watchCb = cb;
+			// violations-suppress: ts/no-unsafe-type-cast test mock return value - StatWatcher is never used
 			return {} as any;
 		});
 		vi.spyOn(fs, 'unwatchFile').mockImplementation(() => {});
 
 		let sigintHandler: (() => void) | undefined;
-		vi.spyOn(process as any, 'on').mockImplementation((event: string, cb: () => void) => {
+		vi.spyOn(process, 'on').mockImplementation((event: string, cb: () => void) => {
 			if (event === 'SIGINT') sigintHandler = cb;
 			return process;
 		});
@@ -97,12 +98,13 @@ describe('cliLogsCommand', () => {
 		let watchCb: (() => void) | undefined;
 		vi.spyOn(fs, 'watchFile').mockImplementation((_f: any, _opts: any, cb: any) => {
 			watchCb = cb;
+			// violations-suppress: ts/no-unsafe-type-cast test mock return value - StatWatcher is never used
 			return {} as any;
 		});
 		vi.spyOn(fs, 'unwatchFile').mockImplementation(() => {});
 
 		let sigintHandler: (() => void) | undefined;
-		vi.spyOn(process as any, 'on').mockImplementation((event: string, cb: () => void) => {
+		vi.spyOn(process, 'on').mockImplementation((event: string, cb: () => void) => {
 			if (event === 'SIGINT') sigintHandler = cb;
 			return process;
 		});

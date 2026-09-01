@@ -1,3 +1,4 @@
+// violations-suppress: ts/no-barrel-index published package API
 export { ConfigDir } from './ConfigDir.js';
 export { runSelfCheck } from './SelfCheck.js';
 export type { SelfCheckResult } from './SelfCheck.js';

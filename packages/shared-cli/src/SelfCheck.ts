@@ -4,6 +4,11 @@ export interface SelfCheckResult {
   detail?: string;
 }
 
+function getErrorMessage(e: unknown): string {
+  // violations-suppress: ts/no-err-message-direct this IS the getErrorMessage helper
+  return e instanceof Error ? e.message : String(e);
+}
+
 /**
  * Runs an array of check functions, prints results to stderr, and exits 1 if any fail.
  * Each check function returns a SelfCheckResult.
@@ -20,7 +25,7 @@ export async function runSelfCheck(
     try {
       result = await check();
     } catch (err) {
-      result = { name: '(threw)', ok: false, detail: err instanceof Error ? err.message : String(err) };
+      result = { name: '(threw)', ok: false, detail: getErrorMessage(err) };
     }
     if (!result.ok) allOk = false;
     if (!quiet || !result.ok) {

@@ -28,7 +28,7 @@ describe('cliRollbackCommand', () => {
 	it('calls npm install with previousVersion and removes state file', async () => {
 		const { cliRollbackCommand } = await import('@wadeck-app/shared-cli/CliMetaCommands');
 		const { execFileSync } = await import('node:child_process');
-		const mockExec = vi.mocked(execFileSync as any);
+		const mockExec = vi.mocked(execFileSync);
 
 		writeFileSync(join(tmpDir, 'update-state.json'), JSON.stringify({
 			status: 'rolled-back',
@@ -88,8 +88,8 @@ describe('cliVersionCommand', () => {
 
 	it('reports up to date when current version matches remote', async () => {
 		const cp = await import('node:child_process');
-		vi.mocked(cp.execFileSync as any).mockReturnValue('1.0.0\n');
-		vi.mocked(cp.execSync as any).mockReturnValue('1.0.0\n');
+		vi.mocked(cp.execFileSync).mockReturnValue('1.0.0\n');
+		vi.mocked(cp.execSync).mockReturnValue('1.0.0\n');
 		const { cliVersionCommand } = await import('@wadeck-app/shared-cli/CliMetaCommands');
 		const out: string[] = [];
 		vi.spyOn(process.stdout, 'write').mockImplementation((s) => { out.push(String(s)); return true; });

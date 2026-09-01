@@ -100,7 +100,7 @@ async function cmdLogInvocation(): Promise<void> {
 		const raw = readFileSync(logFile, 'utf8').trim();
 		assert('log file is non-empty', raw.length > 0);
 
-		const line = JSON.parse(raw) as Record<string, unknown>;
+		const line: Record<string, unknown> = JSON.parse(raw);
 		assert('entry has ts field', typeof line['ts'] === 'string');
 		assert('entry has level=info', line['level'] === 'info');
 		assert(
