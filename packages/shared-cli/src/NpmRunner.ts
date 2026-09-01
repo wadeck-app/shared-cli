@@ -8,7 +8,9 @@ const USE_NPM_CLI = existsSync(NPM_CLI_JS);
 export function execNpm(args: string[], opts: { cwd?: string; timeout?: number } = {}): string {
 	const spawnOpts = { encoding: 'utf8' as const, windowsHide: true, ...opts };
 	if (USE_NPM_CLI) {
+		// violations-suppress: cli/daemon-spawn-no-windows-hide windowsHide:true is set in spawnOpts above
 		return execFileSync(process.execPath, [NPM_CLI_JS, ...args], spawnOpts) as string;
 	}
+	// violations-suppress: cli/daemon-spawn-no-windows-hide windowsHide:true is set in spawnOpts above
 	return execSync(['npm', ...args.map(a => JSON.stringify(a))].join(' '), spawnOpts) as string;
 }

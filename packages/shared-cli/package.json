@@ -7,7 +7,8 @@
 		"url": "https://github.com/wadeck-app/shared-cli.git"
 	},
 	"publishConfig": {
-		"@wadeck-app:registry": "https://npm.pkg.github.com/"
+		"@wadeck-app:registry": "https://npm.pkg.github.com/",
+		"access": "public"
 	},
 	"exports": {
 		".": {
