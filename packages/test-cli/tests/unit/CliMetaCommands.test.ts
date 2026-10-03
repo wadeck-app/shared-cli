@@ -27,8 +27,9 @@ describe('cliRollbackCommand', () => {
 
 	it('calls npm install with previousVersion and removes state file', async () => {
 		const { cliRollbackCommand } = await import('@wadeck-app/shared-cli/CliMetaCommands');
-		const { execFileSync } = await import('node:child_process');
-		const mockExec = vi.mocked(execFileSync);
+		const { execFileSync, execSync } = await import('node:child_process');
+		const mockFileExec = vi.mocked(execFileSync);
+		const mockExec = vi.mocked(execSync);
 
 		writeFileSync(join(tmpDir, 'update-state.json'), JSON.stringify({
 			status: 'rolled-back',
@@ -41,11 +42,15 @@ describe('cliRollbackCommand', () => {
 
 		await cliRollbackCommand('@test/pkg', tmpDir);
 
-		expect(mockExec).toHaveBeenCalledWith(
-			expect.anything(),
-			expect.arrayContaining(['install', '-g', '@test/pkg@2026.8.31-010-abc12345']),
-			expect.anything()
-		);
+		// NpmRunner picks execFileSync or execSync at module-load time depending on
+		// whether a bundled npm-cli.js exists next to the running Node binary - the
+		// branch taken differs between local dev and CI runners, so check whichever fired.
+		const calls = mockFileExec.mock.calls.length > 0 ? mockFileExec.mock.calls : mockExec.mock.calls;
+		expect(calls).toHaveLength(1);
+		const callArgs = JSON.stringify(calls[0]);
+		expect(callArgs).toContain('install');
+		expect(callArgs).toContain('-g');
+		expect(callArgs).toContain('@test/pkg@2026.8.31-010-abc12345');
 		expect(existsSync(join(tmpDir, 'update-state.json'))).toBe(false);
 		expect(out.join('')).toContain('2026.8.31-010-abc12345');
 	});
