@@ -1,37 +1,51 @@
 # @wadeck-app/shared-cli
 
-Single source of truth for CLI features across Workspace_Tooling. A fix or addition here benefits all consumer CLIs on their next `shared-cli` version bump — no per-CLI changes required.
+Shared CLI infrastructure for `@wadeck-app` CLIs — config directory resolution, update management, hook dispatch, logging, and meta-commands.
 
-**Consumer CLIs:** orchestrator, queue, flow-cli, task-cli, violations-cli, scrapers (×3), wdrive
+## Install
+
+```
+npm install @wadeck-app/shared-cli
+```
+
+## API
+
+| Export | Description |
+|---|---|
+| `ConfigDir.get(appName)` | Returns `~/.config/<appName>` (respects `XDG_CONFIG_HOME`). |
+| `ConfigDir.migrateIfNeeded(appName)` | One-time migration from `%APPDATA%/<appName>` or `~/.<appName>` to the canonical path. |
+| `UpdateManager` | Schedules a background updater process and reads/clears the `update-state.json` written by `shared-updater`. |
+| `runSelfCheck(checks, opts?)` | Runs an array of check functions, prints results to stderr, exits 1 on any failure. |
+| `HookDispatcher` | Fires CLI or HTTP hooks on lifecycle events (`onFlowStart`, `onFlowEnd`, `onStepStart`, etc.). |
+| `VersionValidation.validate(v)` | Throws if `v` is not a valid semver string (`x.y.z[-+suffix]`). |
+| `logCliInvocation(configDir, cmd, args)` | Appends an NDJSON entry to `<configDir>/logs/<date>.ndjson`. |
+| `cliLogsCommand(configDir, opts?)` | Prints today's log file; `opts.follow` tails new lines until SIGINT. |
+| `cliVersionCommand(pkgName, current, channel?)` | Prints current vs. latest version from npm registry. |
+| `cliUpdateCommand(updaterPath, pkgName, opts?)` | Runs the updater bundle synchronously with `UPDATER_FORCE=1`. |
+| `cliRollbackCommand(pkgName, configDir)` | Reinstalls `previousVersion` from `update-state.json` and removes the state file. |
+| `warnUnknownArgs(rawArgs, knownArgs, cmdName, valueFlags?)` | Writes a warning to stderr for each unrecognized argument; `valueFlags` marks flags whose next token is a value, not a separate argument. |
+| `execNpm(args, opts?)` | Runs npm synchronously via `npm-cli.js` (bundled node) or `execSync`. |
+| `readChannelFromConfig(configDir)` | Reads `channel:` from `config.yml`; returns `'latest'` if absent. |
+| `parseDuration(s)` | Parses a duration string (`1h`, `30m`, `10s`, `500ms`, `2d`) to milliseconds. |
+
+## Integration notes
+
+- `UpdateManager.scheduleBackgroundUpdate(bundlePath, updaterName?)` detaches a Node.js child process; `updaterName` defaults to `flow-updater.cjs`. In dev mode (no bundled updater), it exits silently.
+- `UpdateManager.readAndClearState()` normalizes legacy field names (`update-failed` → `failed`, `newVersion` → `targetVersion`, `reason` → `error`) written by older `shared-updater` versions.
+- `HookDispatcher` silently swallows hook errors by default; pass an `onError` callback to log them. Hook commands receive payload fields as `UPPER_CASE` env vars. Daemon credentials are not forwarded.
+- `CliHook.debug: true` pipes the hook's stdio to the calling terminal — do not enable in production.
 
 ## Workspace structure
 
 ```
 shared-cli/
-  src/               # published package
   packages/
-    test-cli/        # private workspace — integration + unit tests
+    shared-cli/     # published package (@wadeck-app/shared-cli)
+    test-cli/       # private integration tests (exercises shared-cli + shared-updater)
 ```
 
-## packages/test-cli
+Run tests:
 
-Exercises shared-cli and shared-updater end-to-end with a controlled mock environment.
-
-**Run tests:**
 ```bash
 npm test --workspace packages/test-cli
 ```
-
-**Integration tests** (`tests/integration/update.test.ts`) test the full `runUpdater` state machine — version detection, cache, install, defer, rollback — without spawning a real npm process. `node:child_process` is mocked via `vi.mock` so tests are deterministic and offline.
-
-**`MockRegistry`** (`src/MockRegistry.ts`) is an `http.createServer`-based npm registry stub. Use it when you want to test with real npm pointed at a local registry:
-```ts
-const registry = new MockRegistry();
-await registry.start();
-registry.setLatestVersion('@my/pkg', '2.0.0');
-process.env.npm_config_registry = registry.url;
-// ... run npm commands ...
-await registry.stop();
-```
-
-**Antifragility:** when `shared-cli` grows, `test-cli` grows with it — providing regression coverage before any consumer CLI bumps its dependency.

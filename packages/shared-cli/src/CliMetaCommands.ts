@@ -7,11 +7,19 @@ import { VersionValidation } from './VersionValidation.js';
 /**
  * Warns about unrecognized arguments passed to a CLI subcommand.
  * Prevents silent failure when users pass typos or unsupported flags.
+ * `valueFlags` lists flags that consume the following token as their value
+ * (e.g. `--job <id>`), so that value is not itself flagged as unknown.
  */
-export function warnUnknownArgs(rawArgs: string[], knownArgs: string[], cmdName: string): void {
-	const unknown = rawArgs.filter(a => !knownArgs.includes(a));
-	for (const arg of unknown) {
-		process.stderr.write(`[warning] ${cmdName}: unknown argument '${arg}' — ignored\n`);
+export function warnUnknownArgs(rawArgs: string[], knownArgs: string[], cmdName: string, valueFlags: Set<string> = new Set()): void {
+	for (let i = 0; i < rawArgs.length; i++) {
+		const arg = rawArgs[i];
+		if (valueFlags.has(arg)) {
+			i++;
+			continue;
+		}
+		if (!knownArgs.includes(arg)) {
+			process.stderr.write(`[warning] ${cmdName}: unknown argument '${arg}' — ignored\n`);
+		}
 	}
 }
 

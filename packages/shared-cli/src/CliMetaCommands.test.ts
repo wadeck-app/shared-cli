@@ -296,4 +296,25 @@ describe('warnUnknownArgs', () => {
 
 		expect(err).toHaveLength(0);
 	});
+
+	it('does not flag the value of a value-taking flag as unknown', async () => {
+		const { warnUnknownArgs } = await import('./CliMetaCommands.js');
+		const err: string[] = [];
+		vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+
+		warnUnknownArgs(['--job', 'codex-update', '--tail', '150'], ['--job', '--tail'], 'orch logs', new Set(['--job', '--tail']));
+
+		expect(err).toHaveLength(0);
+	});
+
+	it('still flags unknown args alongside value-taking flags', async () => {
+		const { warnUnknownArgs } = await import('./CliMetaCommands.js');
+		const err: string[] = [];
+		vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+
+		warnUnknownArgs(['--job', 'codex-update', '--bogus'], ['--job'], 'orch logs', new Set(['--job']));
+
+		expect(err.join('')).toContain("unknown argument '--bogus'");
+		expect(err.join('')).not.toContain("'codex-update'");
+	});
 });
