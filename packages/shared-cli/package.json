@@ -60,6 +60,11 @@
 			"import": "./dist/ChannelConfig.js",
 			"require": "./dist/cjs/ChannelConfig.js",
 			"types": "./dist/ChannelConfig.d.ts"
+		},
+		"./resolveOwnBundlePath": {
+			"import": "./dist/resolveOwnBundlePath.js",
+			"require": "./dist/cjs/resolveOwnBundlePath.js",
+			"types": "./dist/resolveOwnBundlePath.d.ts"
 		}
 	},
 	"main": "./dist/cjs/index.js",
