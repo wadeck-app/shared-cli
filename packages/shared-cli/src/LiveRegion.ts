@@ -14,14 +14,24 @@
  * screen clear) by moving the cursor up and clearing from there to the end of the
  * screen, then writes the new lines -- so the terminal never scrolls on its own and
  * nothing above the region is disturbed.
+ *
+ * A tick whose content is identical to the last render is a no-op (no cursor move, no
+ * write at all): most polls of a live state view see nothing change (a worker just
+ * sitting idle, poll after poll), and redrawing the identical content anyway would
+ * flicker the terminal every tick for no reason.
  */
 export class LiveRegion {
 	private lineCount = 0;
+	private lastRender: string | undefined;
 
 	constructor(private readonly stream: NodeJS.WriteStream = process.stdout) {}
 
-	/** Replaces the previously rendered lines (if any) with `lines`. */
+	/** Replaces the previously rendered lines (if any) with `lines`, unless unchanged. */
 	render(lines: string[]): void {
+		const next = lines.join('\n');
+		if (next === this.lastRender) return;
+		this.lastRender = next;
+
 		if (this.lineCount > 0) {
 			// Move the cursor up `lineCount` rows, then clear from there to the end of the
 			// screen -- handles both a shorter and a longer new render correctly.

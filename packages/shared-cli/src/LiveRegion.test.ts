@@ -41,4 +41,26 @@ describe('LiveRegion', () => {
 		region.render([]);
 		expect(write.mock.calls).toEqual([['\x1b[1A\x1b[0J']]);
 	});
+
+	// Most polls of a live state view see nothing change -- redrawing identical content
+	// anyway would flicker the terminal every tick for no reason.
+	it('writes nothing when the new render is identical to the last one', () => {
+		const { write, stream } = fakeStream();
+		const region = new LiveRegion(stream);
+		region.render(['a', 'b']);
+		write.mockClear();
+		region.render(['a', 'b']);
+		expect(write).not.toHaveBeenCalled();
+	});
+
+	it('redraws again once content differs after a run of identical renders', () => {
+		const { write, stream } = fakeStream();
+		const region = new LiveRegion(stream);
+		region.render(['a']);
+		region.render(['a']);
+		write.mockClear();
+		region.render(['b']);
+		expect(write.mock.calls[0][0]).toBe('\x1b[1A\x1b[0J');
+		expect(write.mock.calls.slice(1).map(call => call[0])).toEqual(['b\n']);
+	});
 });
