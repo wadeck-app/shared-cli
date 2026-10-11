@@ -70,6 +70,11 @@
 			"import": "./dist/FollowSnapshot.js",
 			"require": "./dist/cjs/FollowSnapshot.js",
 			"types": "./dist/FollowSnapshot.d.ts"
+		},
+		"./LiveRegion": {
+			"import": "./dist/LiveRegion.js",
+			"require": "./dist/cjs/LiveRegion.js",
+			"types": "./dist/LiveRegion.d.ts"
 		}
 	},
 	"main": "./dist/cjs/index.js",
