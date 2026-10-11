@@ -41,3 +41,15 @@ export function diffSnapshot<T>(
 
 	return { changed, snapshot };
 }
+
+/**
+ * Diffs a fresh append-only array against a prior length, for a `--follow`/`-f` loop over a
+ * log whose past entries are never mutated or removed (e.g. a task's status-change history).
+ * Unlike {@link diffSnapshot}, this never re-signatures existing entries -- it trusts that
+ * everything before `previousCount` is unchanged and only returns what was appended since.
+ * Do not use this for a collection where existing entries can change or be removed; use
+ * `diffSnapshot` for that.
+ */
+export function diffAppendOnlyLog<T>(previousCount: number, current: T[]): { changed: T[]; count: number } {
+	return { changed: current.slice(previousCount), count: current.length };
+}

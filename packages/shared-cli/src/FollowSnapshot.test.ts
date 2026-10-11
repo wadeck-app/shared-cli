@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diffSnapshot } from './FollowSnapshot.js';
+import { diffAppendOnlyLog, diffSnapshot } from './FollowSnapshot.js';
 
 describe('diffSnapshot', () => {
 	it('reports every item as changed against an empty previous snapshot', () => {
@@ -31,5 +31,30 @@ describe('diffSnapshot', () => {
 		const second = diffSnapshot(first.snapshot, [{ id: 'a' }], item => item.id);
 		expect(second.changed).toEqual([]);
 		expect(second.snapshot.has('b')).toBe(false);
+	});
+});
+
+describe('diffAppendOnlyLog', () => {
+	it('reports every entry as changed against a zero count', () => {
+		const current = [{ status: 'backlog', timestamp: '2026-01-01T00:00:00.000Z' }];
+		const { changed, count } = diffAppendOnlyLog(0, current);
+		expect(changed).toEqual(current);
+		expect(count).toBe(1);
+	});
+
+	it('reports only entries appended after the previous count', () => {
+		const current = [
+			{ status: 'backlog', timestamp: '2026-01-01T00:00:00.000Z' },
+			{ status: 'in-progress', timestamp: '2026-01-01T00:00:01.000Z' },
+		];
+		const { changed, count } = diffAppendOnlyLog(1, current);
+		expect(changed).toEqual([current[1]]);
+		expect(count).toBe(2);
+	});
+
+	it('reports nothing new when the count is unchanged', () => {
+		const current = [{ status: 'backlog', timestamp: '2026-01-01T00:00:00.000Z' }];
+		const { changed } = diffAppendOnlyLog(1, current);
+		expect(changed).toEqual([]);
 	});
 });
