@@ -65,6 +65,11 @@
 			"import": "./dist/resolveOwnBundlePath.js",
 			"require": "./dist/cjs/resolveOwnBundlePath.js",
 			"types": "./dist/resolveOwnBundlePath.d.ts"
+		},
+		"./FollowSnapshot": {
+			"import": "./dist/FollowSnapshot.js",
+			"require": "./dist/cjs/FollowSnapshot.js",
+			"types": "./dist/FollowSnapshot.d.ts"
 		}
 	},
 	"main": "./dist/cjs/index.js",
