@@ -28,6 +28,23 @@ The main package declares platform packages as `optionalDependencies`:
 
 **Why not GitHub Releases or custom servers**: npm provides registry, versioning, and install UX at zero operational cost.
 
+### 1.1 Two publication families
+
+Both exist in the repos today (checked in the workflows and `package.json` files of each CLI). Package scope is `@wadeck-app` on GitHub Packages; the `@wadeck`/GitLab names elsewhere in this file are historical.
+
+| | A: dist wrapper | B: direct |
+|---|---|---|
+| CLIs | `flow-cli`, `task-cli`, `queue-cli` | `orchestrator-cli`, `app-core-cli`, `violations-cli`; `shared-cli` is a library published the same way |
+| Workspace package | unscoped (`queue-cli`), `"private": true` | scoped (`@wadeck-app/orchestrator-cli`), no `private` |
+| What CI publishes | `@wadeck-app/<name>-cli` generated into `packages/<name>-cli-dist`, plus `<name>-cli-<platform>` | the workspace package itself |
+| CI command | `npm publish` run in each generated folder | `npm publish --workspace=packages/<name>-cli` |
+| `publishConfig` | written into the generated package | in the workspace `package.json` (`@wadeck-app:registry`, `access: public`) |
+| Where the generation lives | `ci-templates/scripts/generate-platform-packages.sh` (`generate_dist`) | none |
+
+- **Family A, why the source package stays private and unscoped:** the generated package has the scoped name, and two workspace packages with one name inside the `packages/*` glob break `npm install`; an unscoped name that is not private would go to the public npmjs.org on an accidental `npm publish`.
+- **Moving a CLI from A to B** is a CI rework (version stamping, platform packages, workflow), not a rename. Do it in a dedicated change.
+- `queue-cli` stays in family A (decision of its owner, 2026-10-18).
+
 ---
 
 ## 2. Config directory
