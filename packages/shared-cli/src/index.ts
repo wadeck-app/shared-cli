@@ -7,3 +7,4 @@ export type { CliHook, HookConfig, HookEvent, HttpHook } from './HookDispatcher.
 export { UpdateManager } from './UpdateManager.js';
 export type { UpdateState } from './UpdateManager.js';
 export { VersionValidation } from './VersionValidation.js';
+export { devBuildRefusalMessage, isReleaseVersion } from './ReleaseVersion.js';

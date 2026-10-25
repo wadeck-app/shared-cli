@@ -3,10 +3,12 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 import { ConfigDir } from './ConfigDir.js';
+import { isReleaseVersion } from './ReleaseVersion.js';
 
 export interface UpdateState {
 	// 'failed' replaces legacy 'update-failed'; both are accepted on read.
-	// 'applying' is legacy (shared-updater no longer writes it); kept for compat.
+	// 'applying' = install in progress (shared-updater writes it before `npm install -g`); with a dead
+	// `pid` it means an interrupted install that the next updater run repairs.
 	status: 'update-available' | 'success' | 'failed' | 'rolled-back' | 'applying' | 'update-failed';
 	currentVersion?: string;
 	targetVersion?: string;
@@ -28,7 +30,11 @@ export class UpdateManager {
 	}
 
 	// Prefer the named updater; fall back to flow-updater.cjs (shared bundle handles both CLIs via UPDATER_PKG_NAME).
-	scheduleBackgroundUpdate(bundlePath: string, updaterName = 'flow-updater.cjs'): void {
+	// currentVersion: the running CLI's version. When given and it is not a GitHub Packages release
+	// (see isReleaseVersion), nothing is spawned: a dev build must never touch the global install.
+	// When omitted the dev-build check is NOT applied (legacy callers): always pass it.
+	scheduleBackgroundUpdate(bundlePath: string, updaterName = 'flow-updater.cjs', currentVersion?: string): void {
+		if (currentVersion !== undefined && !isReleaseVersion(currentVersion)) return;
 		const dir = path.dirname(bundlePath);
 		const updaterPath = fs.existsSync(path.join(dir, updaterName))
 			? path.join(dir, updaterName)

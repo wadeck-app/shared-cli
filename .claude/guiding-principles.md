@@ -8,6 +8,7 @@
 - CLI hook timeout: 10 seconds; HTTP hook timeout: 10 seconds — both are hard limits, not configurable per-hook in v1.
 - `NpmRunner` must prefer bundled `npm-cli.js` over system npm — `execFileSync` with bundled path first, `execSync` fallback with `windowsHide:true`.
 - `CliMetaCommands.warnUnknownArgs` must warn to stderr for unknown flags — not silently ignore them.
+- Only GitHub Packages releases auto-update — `ReleaseVersion.isReleaseVersion` accepts only the CI-stamped `YYYY.MM.DD-BBB-hash8`; stable `X.Y.Z` is never published, so not accepted. Callers pass their version as the 3rd arg of `UpdateManager.scheduleBackgroundUpdate`; a non-release version spawns nothing. Omitting the arg skips the check (legacy compat) — new callers must pass it. Reason: an interrupted `npm install -g` uninstalls the global CLI (incident 2026-10-24).
 - `UpdateManager` must NOT clear state file when `status === 'applying'` — updater process may still be running.
 - `UpdateManager.readAndClearState()` normalizes legacy field names: `update-failed`→`failed`, `newVersion`→`targetVersion`, `reason`→`error` — must maintain for backward compat.
 - Published as `@wadeck-app/shared-cli` to GitHub Packages registry — not npm public registry.

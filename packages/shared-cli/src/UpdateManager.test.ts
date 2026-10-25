@@ -61,6 +61,25 @@ describe('UpdateManager.scheduleBackgroundUpdate', () => {
 		expect(mockChild.unref).toHaveBeenCalled();
 	});
 
+	it.each(['0.1.0', '2026.10.25-143012-512-a1b2c3d4', ''])('does not spawn for dev build version "%s"', (version) => {
+		fs.writeFileSync(path.join(tmpDir, 'queue-updater.cjs'), '');
+
+		const mgr = new UpdateManager('@wadeck-app/queue-cli', tmpDir);
+		mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs', version);
+
+		expect(vi.mocked(spawn)).not.toHaveBeenCalled();
+	});
+
+	it('spawns for a GitHub Packages release version', () => {
+		fs.writeFileSync(path.join(tmpDir, 'queue-updater.cjs'), '');
+		vi.mocked(spawn).mockReturnValue({ unref: vi.fn() } as never);
+
+		const mgr = new UpdateManager('@wadeck-app/queue-cli', tmpDir);
+		mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs', '2026.10.24-143-a4606f23');
+
+		expect(vi.mocked(spawn)).toHaveBeenCalledTimes(1);
+	});
+
 	it('falls back to flow-updater.cjs when named updater is absent', () => {
 		const fallbackPath = path.join(tmpDir, 'flow-updater.cjs');
 		fs.writeFileSync(fallbackPath, '');

@@ -71,6 +71,11 @@
 			"require": "./dist/cjs/FollowSnapshot.js",
 			"types": "./dist/FollowSnapshot.d.ts"
 		},
+		"./ReleaseVersion": {
+			"import": "./dist/ReleaseVersion.js",
+			"require": "./dist/cjs/ReleaseVersion.js",
+			"types": "./dist/ReleaseVersion.d.ts"
+		},
 		"./LiveRegion": {
 			"import": "./dist/LiveRegion.js",
 			"require": "./dist/cjs/LiveRegion.js",
