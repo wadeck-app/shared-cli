@@ -80,6 +80,25 @@ describe('UpdateManager.scheduleBackgroundUpdate', () => {
 		expect(vi.mocked(spawn)).toHaveBeenCalledTimes(1);
 	});
 
+	it('warns on stderr, once per process, when the version is omitted; never when it is given', async () => {
+		vi.resetModules();
+		const { UpdateManager: Fresh } = await import('./UpdateManager.js');
+		const write = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+		try {
+			const mgr = new Fresh('@wadeck-app/queue-cli', tmpDir);
+			mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs', '2026.10.24-143-a4606f23');
+			expect(write).not.toHaveBeenCalled();
+
+			mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs');
+			mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs');
+			expect(write).toHaveBeenCalledTimes(1);
+			expect(String(write.mock.calls[0]?.[0])).toContain('@wadeck-app/queue-cli');
+			expect(String(write.mock.calls[0]?.[0])).toContain('3rd argument');
+		} finally {
+			write.mockRestore();
+		}
+	});
+
 	it('falls back to flow-updater.cjs when named updater is absent', () => {
 		const fallbackPath = path.join(tmpDir, 'flow-updater.cjs');
 		fs.writeFileSync(fallbackPath, '');

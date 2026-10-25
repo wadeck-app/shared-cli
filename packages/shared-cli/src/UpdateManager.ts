@@ -20,6 +20,17 @@ export interface UpdateState {
 	timestamp: number;
 }
 
+let missingVersionWarned = false;
+
+function warnMissingVersionOnce(pkgName: string): void {
+	if (missingVersionWarned) return;
+	missingVersionWarned = true;
+	process.stderr.write(
+		`[warn] ${pkgName}: scheduleBackgroundUpdate called without the running version, so the dev-build guard is skipped ` +
+		'and a repo-built bundle may run `npm install -g`. Pass the version as the 3rd argument.\n',
+	);
+}
+
 export class UpdateManager {
 	private readonly configDir: string;
 	private readonly pkgName: string;
@@ -32,9 +43,14 @@ export class UpdateManager {
 	// Prefer the named updater; fall back to flow-updater.cjs (shared bundle handles both CLIs via UPDATER_PKG_NAME).
 	// currentVersion: the running CLI's version. When given and it is not a GitHub Packages release
 	// (see isReleaseVersion), nothing is spawned: a dev build must never touch the global install.
-	// When omitted the dev-build check is NOT applied (legacy callers): always pass it.
+	// When omitted the dev-build check is NOT applied (legacy callers): always pass it. A warning on stderr,
+	// once per process, makes the omission visible instead of silently skipping the guard.
 	scheduleBackgroundUpdate(bundlePath: string, updaterName = 'flow-updater.cjs', currentVersion?: string): void {
-		if (currentVersion !== undefined && !isReleaseVersion(currentVersion)) return;
+		if (currentVersion === undefined) {
+			warnMissingVersionOnce(this.pkgName);
+		} else if (!isReleaseVersion(currentVersion)) {
+			return;
+		}
 		const dir = path.dirname(bundlePath);
 		const updaterPath = fs.existsSync(path.join(dir, updaterName))
 			? path.join(dir, updaterName)
