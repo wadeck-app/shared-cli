@@ -12,9 +12,12 @@ export function isReleaseVersion(version: string | undefined | null): boolean {
 /**
  * Actionable message for a dev build asked to update. Such a build must never touch the global
  * install: an interrupted `npm install -g` leaves the CLI uninstalled (incident 2026-10-24).
+ *
+ * `updateCommand` is what the user types to update the installed binary; it defaults to
+ * `<binary> cli update` and must be given by CLIs whose command is different (e.g. `app-core-cli update`).
  */
-export function devBuildRefusalMessage(binary: string, version: string): string {
+export function devBuildRefusalMessage(binary: string, version: string, updateCommand = `${binary} cli update`): string {
 	return `dev build ${version}: refusing to update the global install of ${binary}; ` +
 		'only versions installed from GitHub Packages (CalVer YYYY.MM.DD-BBB-hash) auto-update. ' +
-		`Use the installed binary instead: ${binary} cli update`;
+		`Use the installed binary instead: ${updateCommand}`;
 }

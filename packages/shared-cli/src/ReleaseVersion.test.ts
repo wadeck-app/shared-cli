@@ -28,4 +28,10 @@ describe('devBuildRefusalMessage', () => {
 		expect(msg).toContain('dev build 0.1.0');
 		expect(msg).toContain('violations cli update');
 	});
+
+	it('uses the given update command instead of the `cli update` default', () => {
+		const msg = devBuildRefusalMessage('app-core-cli', '0.0.1', 'app-core-cli update');
+		expect(msg).toContain('installed binary instead: app-core-cli update');
+		expect(msg).not.toContain('cli cli update');
+	});
 });
