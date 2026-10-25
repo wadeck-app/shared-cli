@@ -8,7 +8,12 @@ describe('isReleaseVersion', () => {
 		expect(isReleaseVersion('2026.08.23-009-0123abcd')).toBe(true);
 	});
 
-	it.each(['0.1.0', '0.0.0', '0.0.0-dev', '1.2.0', '2026.10.25-143012-512-a1b2c3d4', '2026.10.25-143012-0-DEV', '2026.13.01-143-a4606f23', '2026.10.24-14-a4606f23', '2026.10.24-143-A4606F23'])(
+	// npm strips leading zeros on publish: these are real versions from the registry.
+	it.each(['2026.8.31-022-55ef14e0', '2026.9.1-028-247c1709', '2026.10.3-035-1e4adce3', '2026.9.13-1000-b23303c8'])('accepts the unpadded registry form %s', (v) => {
+		expect(isReleaseVersion(v)).toBe(true);
+	});
+
+	it.each(['0.1.0', '0.0.0', '0.0.0-dev', '1.2.0', '2026.10.25-143012-512-a1b2c3d4', '2026.10.25-143012-0-DEV', '2026.13.01-143-a4606f23', '2026.0.10-143-a4606f23', '2026.10.0-143-a4606f23', '2026.10.32-143-a4606f23', '2026.10.24-14-a4606f23', '2026.10.24-143-A4606F23'])(
 		'rejects %s',
 		(v) => {
 			expect(isReleaseVersion(v)).toBe(false);
