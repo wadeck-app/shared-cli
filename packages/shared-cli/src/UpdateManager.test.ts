@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { UpdateManager } from './UpdateManager.js';
 import type { UpdateState } from './UpdateManager.js';
 
+const RELEASE = '2026.10.24-143-a4606f23';
+
 // vi.mock is hoisted before imports — spawn is mocked when UpdateManager loads.
 vi.mock('node:child_process', () => ({
 	spawn: vi.fn(),
@@ -30,7 +32,7 @@ describe('UpdateManager.scheduleBackgroundUpdate', () => {
 	it('does nothing when no updater bundle exists in the bundle dir', () => {
 		const mgr = new UpdateManager('@wadeck/flow-cli', tmpDir);
 
-		mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'flow.cjs'));
+		mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'flow.cjs'), 'flow-updater.cjs', RELEASE);
 
 		expect(vi.mocked(spawn)).not.toHaveBeenCalled();
 	});
@@ -43,7 +45,7 @@ describe('UpdateManager.scheduleBackgroundUpdate', () => {
 		vi.mocked(spawn).mockReturnValue(mockChild as never);
 
 		const mgr = new UpdateManager('@wadeck-app/queue-cli', tmpDir);
-		mgr.scheduleBackgroundUpdate(bundlePath, 'queue-updater.cjs');
+		mgr.scheduleBackgroundUpdate(bundlePath, 'queue-updater.cjs', RELEASE);
 
 		expect(vi.mocked(spawn)).toHaveBeenCalledWith(
 			process.execPath,
@@ -80,23 +82,13 @@ describe('UpdateManager.scheduleBackgroundUpdate', () => {
 		expect(vi.mocked(spawn)).toHaveBeenCalledTimes(1);
 	});
 
-	it('warns on stderr, once per process, when the version is omitted; never when it is given', async () => {
-		vi.resetModules();
-		const { UpdateManager: Fresh } = await import('./UpdateManager.js');
-		const write = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-		try {
-			const mgr = new Fresh('@wadeck-app/queue-cli', tmpDir);
-			mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs', '2026.10.24-143-a4606f23');
-			expect(write).not.toHaveBeenCalled();
-
-			mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs');
-			mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs');
-			expect(write).toHaveBeenCalledTimes(1);
-			expect(String(write.mock.calls[0]?.[0])).toContain('@wadeck-app/queue-cli');
-			expect(String(write.mock.calls[0]?.[0])).toContain('3rd argument');
-		} finally {
-			write.mockRestore();
-		}
+	// The build type-checks tests: if the version becomes optional again, the directive below is
+	// reported as unused and the build fails.
+	it('requires the version argument at compile time', () => {
+		const mgr = new UpdateManager('@wadeck-app/queue-cli', tmpDir);
+		// @ts-expect-error currentVersion is required: omitting it must not compile
+		const omitted = () => mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs');
+		expect(omitted).toBeTypeOf('function');
 	});
 
 	it('falls back to flow-updater.cjs when named updater is absent', () => {
@@ -106,7 +98,7 @@ describe('UpdateManager.scheduleBackgroundUpdate', () => {
 		vi.mocked(spawn).mockReturnValue(mockChild as never);
 
 		const mgr = new UpdateManager('@wadeck-app/queue-cli', tmpDir);
-		mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs');
+		mgr.scheduleBackgroundUpdate(path.join(tmpDir, 'queue.cjs'), 'queue-updater.cjs', RELEASE);
 
 		expect(vi.mocked(spawn)).toHaveBeenCalledWith(
 			process.execPath,
