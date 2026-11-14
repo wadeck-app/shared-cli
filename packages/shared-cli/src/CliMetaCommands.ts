@@ -60,12 +60,55 @@ export async function cliLogsCommand(configDir: string, opts: { follow?: boolean
 	});
 }
 
+const REGISTRY_CHECK_HINT = 'check the registry URL and the auth token in your user .npmrc, then try again';
+
+/** Turns a failed `npm view` into one actionable sentence that keeps the real error text. */
+function describeFetchFailure(error: unknown): string {
+	const err = error as { stderr?: unknown; code?: unknown } | null;
+	const stderr = err && typeof err.stderr !== 'undefined' ? String(err.stderr).trim() : '';
+	const message = String(error);
+	const detail = (stderr || message).split(/\r?\n/).map(l => l.trim()).filter(Boolean).slice(0, 4).join(' | ');
+	const code = err && typeof err.code === 'string' ? err.code : '';
+	const text = `${stderr}\n${message}`;
+
+	if (code === 'ETIMEDOUT' || /ETIMEDOUT|timed out/i.test(text)) {
+		return `the registry did not answer in time (timed out) [${detail}]; ${REGISTRY_CHECK_HINT}`;
+	}
+	if (/\bE?40[13]\b/.test(text)) {
+		const status = /\bE?(40[13])\b/.exec(text)?.[1];
+		return `registry refused the authentication (HTTP ${status}) [${detail}]; ${REGISTRY_CHECK_HINT}`;
+	}
+	const http = /\bE?([45]\d\d)\b/.exec(text)?.[1];
+	if (http) {
+		return `registry answered HTTP ${http} [${detail}]; ${REGISTRY_CHECK_HINT}`;
+	}
+	if (/ECONNREFUSED|ENOTFOUND|EAI_AGAIN|ECONNRESET|ENETUNREACH|EHOSTUNREACH|network/i.test(text)) {
+		return `network unreachable [${detail}]; ${REGISTRY_CHECK_HINT}`;
+	}
+	return `${detail}; ${REGISTRY_CHECK_HINT}`;
+}
+
+/**
+ * Prints the installed version always (stdout); the latest one only when the registry answers.
+ * A registry failure is a warning on stderr with the cause, never a failure of the command (exit code unchanged).
+ */
 export async function cliVersionCommand(pkgName: string, current: string, channel = 'latest'): Promise<void> {
-	let latest: string;
+	let latest: string | undefined;
+	let problem: string | undefined;
 	try {
-		latest = execNpm(['view', pkgName, `dist-tags.${channel}`], { timeout: 15_000 }).trim();
-	} catch {
-		process.stderr.write(`Failed to fetch latest version for ${pkgName}\n`);
+		const answer = execNpm(['view', pkgName, `dist-tags.${channel}`], { timeout: 15_000 }).trim();
+		if (answer === '' || /[\s<>{}[\]]/.test(answer)) {
+			const shown = answer === '' ? '(empty)' : JSON.stringify(answer.length > 80 ? `${answer.slice(0, 80)}...` : answer);
+			problem = `unexpected answer from the registry for dist-tags.${channel}: ${shown}; ${REGISTRY_CHECK_HINT}`;
+		} else {
+			latest = answer;
+		}
+	} catch (error) {
+		problem = describeFetchFailure(error);
+	}
+	if (latest === undefined) {
+		process.stdout.write(`${pkgName}: current=${current} latest=unknown (channel: ${channel})\n`);
+		process.stderr.write(`[warning] could not fetch the latest version of ${pkgName}: ${problem}\n`);
 		return;
 	}
 	if (latest === current) {

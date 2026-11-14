@@ -154,15 +154,108 @@ describe('cliVersionCommand', () => {
 		expect(out.join('')).toContain('1.0.0');
 	});
 
-	it('prints error and returns (no crash) when fetch fails', async () => {
-		const { execNpm } = await import('./NpmRunner.js');
-		vi.mocked(execNpm).mockImplementation(() => { throw new Error('network error'); });
-		const { cliVersionCommand } = await import('./CliMetaCommands.js');
-		const err: string[] = [];
-		vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+	describe('when the latest version cannot be fetched', () => {
+		const npmFailure = (message: string, extra: Record<string, unknown> = {}) =>
+			Object.assign(new Error(message), extra);
 
-		await expect(cliVersionCommand('@test/pkg', '1.0.0')).resolves.toBeUndefined();
-		expect(err.join('')).toContain('Failed to fetch');
+		async function run(failure: unknown): Promise<{ out: string; err: string; result: unknown }> {
+			const { execNpm } = await import('./NpmRunner.js');
+			vi.mocked(execNpm).mockImplementation(() => { throw failure; });
+			const { cliVersionCommand } = await import('./CliMetaCommands.js');
+			const out: string[] = [];
+			const err: string[] = [];
+			vi.spyOn(process.stdout, 'write').mockImplementation((s) => { out.push(String(s)); return true; });
+			vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+			const result = await cliVersionCommand('@test/pkg', '1.0.0', 'latest');
+			return { out: out.join(''), err: err.join(''), result };
+		}
+		const UNKNOWN_LINE = '@test/pkg: current=1.0.0 latest=unknown (channel: latest)\n';
+
+		it('ECONNREFUSED: stdout keeps the installed version, stderr names the cause', async () => {
+			const r = await run(npmFailure('Command failed', { stderr: 'npm error code ECONNREFUSED\nnpm error errno ECONNREFUSED\nnpm error request to https://npm.pkg.github.com/x failed' }));
+			expect(r.result).toBeUndefined();
+			expect(r.out).toBe(UNKNOWN_LINE);
+			expect(r.err.trim().split('\n')).toHaveLength(1);
+			expect(r.err).toContain('warning');
+			expect(r.err).toContain('network unreachable');
+			expect(r.err).toContain('ECONNREFUSED');
+			expect(r.err).toContain('registry URL');
+		});
+
+		it('timeout', async () => {
+			const r = await run(npmFailure('spawnSync node ETIMEDOUT', { code: 'ETIMEDOUT', killed: true }));
+			expect(r.out).toBe(UNKNOWN_LINE);
+			expect(r.err).toContain('timed out');
+			expect(r.err).toContain('registry URL');
+		});
+
+		it('401 names authentication and the token', async () => {
+			const r = await run(npmFailure('Command failed', { stderr: 'npm error code E401\nnpm error 401 Unauthorized - GET https://npm.pkg.github.com/@test%2fpkg' }));
+			expect(r.out).toBe(UNKNOWN_LINE);
+			expect(r.err).toContain('authentication');
+			expect(r.err).toContain('401');
+			expect(r.err).toContain('token');
+		});
+
+		it('403 names authentication', async () => {
+			const r = await run(npmFailure('Command failed', { stderr: 'npm error code E403\nnpm error 403 Forbidden' }));
+			expect(r.err).toContain('authentication');
+			expect(r.err).toContain('403');
+		});
+
+		it('404 keeps the HTTP status', async () => {
+			const r = await run(npmFailure('Command failed', { stderr: 'npm error code E404\nnpm error 404 Not Found - GET https://npm.pkg.github.com/@test%2fpkg' }));
+			expect(r.out).toBe(UNKNOWN_LINE);
+			expect(r.err).toContain('HTTP 404');
+			expect(r.err).toContain('registry URL');
+		});
+
+		it('503 keeps the HTTP status', async () => {
+			const r = await run(npmFailure('Command failed', { stderr: 'npm error code E503\nnpm error 503 Service Unavailable' }));
+			expect(r.err).toContain('HTTP 503');
+		});
+
+		it('an unrecognized error keeps its real text', async () => {
+			const r = await run(npmFailure('something odd happened'));
+			expect(r.out).toBe(UNKNOWN_LINE);
+			expect(r.err).toContain('something odd happened');
+		});
+
+		it('a non-Error throw is still reported', async () => {
+			const r = await run('boom');
+			expect(r.err).toContain('boom');
+			expect(r.out).toBe(UNKNOWN_LINE);
+		});
+	});
+
+	describe('malformed answers', () => {
+		for (const [name, answer] of [['empty', '\n'], ['html', '<html>oops</html>'], ['json object', '{"error":"x"}'], ['several lines', '1.0.0\n2.0.0']] as const) {
+			it(`${name}: reported, not printed as a version`, async () => {
+				const { execNpm } = await import('./NpmRunner.js');
+				vi.mocked(execNpm).mockReturnValue(answer);
+				const { cliVersionCommand } = await import('./CliMetaCommands.js');
+				const out: string[] = [];
+				const err: string[] = [];
+				vi.spyOn(process.stdout, 'write').mockImplementation((s) => { out.push(String(s)); return true; });
+				vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+				await cliVersionCommand('@test/pkg', '1.0.0');
+				expect(out.join('')).toBe('@test/pkg: current=1.0.0 latest=unknown (channel: latest)\n');
+				expect(err.join('')).toContain('unexpected answer');
+			});
+		}
+	});
+
+	it('online output is unchanged and writes nothing on stderr', async () => {
+		const { execNpm } = await import('./NpmRunner.js');
+		vi.mocked(execNpm).mockReturnValue('2.0.0\n');
+		const { cliVersionCommand } = await import('./CliMetaCommands.js');
+		const out: string[] = [];
+		const err: string[] = [];
+		vi.spyOn(process.stdout, 'write').mockImplementation((s) => { out.push(String(s)); return true; });
+		vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+		await cliVersionCommand('@test/pkg', '1.0.0');
+		expect(out.join('')).toBe('@test/pkg: current=1.0.0 latest=2.0.0 (channel: latest)\n');
+		expect(err).toEqual([]);
 	});
 
 	it('queries dist-tags.edge when channel is edge', async () => {
