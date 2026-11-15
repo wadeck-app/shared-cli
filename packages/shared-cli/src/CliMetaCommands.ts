@@ -131,14 +131,20 @@ export async function cliUpdateCommand(
 		process.exit(1);
 	}
 	process.stdout.write(`Running updater for ${pkgName}...\n`);
-	await new Promise<void>((resolve, reject) => {
+	const code = await new Promise<number | null>((resolve) => {
 		const child = spawn(process.execPath, [updaterPath], {
 			env: { ...process.env, UPDATER_FORCE: '1' },
 			stdio: 'inherit',
 			windowsHide: true,
 		});
-		child.on('close', code => code === 0 ? resolve() : reject(new Error(`Updater exited with code ${code}`)));
+		child.on('close', resolve);
 	});
+	// The updater says what happened (versions, steps, the reason of a failure) on its own output: an exception here only added a stack trace
+	// of "Updater exited with code 1" under it. One line and the exit code.
+	if (code !== 0) {
+		process.stderr.write(`Update of ${pkgName} failed (the updater exited with code ${code}): the lines above say why.\n`);
+		process.exitCode = typeof code === 'number' ? code : 1;
+	}
 }
 
 export async function cliRollbackCommand(pkgName: string, configDir: string): Promise<void> {

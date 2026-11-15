@@ -322,6 +322,29 @@ describe('cliUpdateCommand', () => {
 			expect.objectContaining({ env: expect.objectContaining({ UPDATER_FORCE: '1' }) }),
 		);
 	});
+
+	// The updater prints why it failed (shared-updater, UPDATER_FORCE=1). A rejection here ended as an unhandled-rejection stack trace of
+	// "Updater exited with code 1" under those lines in every CLI that does not catch it.
+	it('a failed update is one line and the exit code, not an exception', async () => {
+		tmpDir = mkdtempSync(join(tmpdir(), 'cli-meta-'));
+		const updaterPath = join(tmpDir, 'updater.cjs');
+		writeFileSync(updaterPath, '');
+		const { spawn } = await import('node:child_process');
+		const mockChild = { on: vi.fn((event: string, cb: (code: number) => void) => { if (event === 'close') cb(1); }), };
+		vi.mocked(spawn).mockReturnValue(mockChild as never);
+		const { cliUpdateCommand } = await import('./CliMetaCommands.js');
+		const err: string[] = [];
+		vi.spyOn(process.stderr, 'write').mockImplementation((s) => { err.push(String(s)); return true; });
+		vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+		const previous = process.exitCode;
+		process.exitCode = undefined;
+
+		await expect(cliUpdateCommand(updaterPath, '@test/pkg')).resolves.toBeUndefined();
+
+		expect(err.join('')).toContain('Update of @test/pkg failed (the updater exited with code 1): the lines above say why');
+		expect(process.exitCode).toBe(1);
+		process.exitCode = previous;
+	});
 });
 
 describe('cliRollbackCommand', () => {
