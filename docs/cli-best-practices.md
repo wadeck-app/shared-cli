@@ -18,11 +18,13 @@ The main package declares platform packages as `optionalDependencies`:
 
 ```json
 "optionalDependencies": {
-  "@wadeck/flow-cli-win32-x64": ">=0.0.0-0",
-  "@wadeck/flow-cli-darwin-arm64": ">=0.0.0-0",
-  "@wadeck/flow-cli-darwin-x64": ">=0.0.0-0"
+  "@wadeck/flow-cli-win32-x64": "latest",
+  "@wadeck/flow-cli-darwin-arm64": "latest",
+  "@wadeck/flow-cli-darwin-x64": "latest"
 }
 ```
+
+`latest` is the rule for every internal `@wadeck-app` lib that comes from the registry (workspace packages stay `*`). The publish scripts rewrite these to exact pins in the published package (example: `ci/scripts/publish-platform-packages.sh` of app-core-cli). Never use `>=0.0.0-0`: it does not match a CalVer prerelease, so npm drops the package from the lock and `npm ci` fails with "Missing ... from lock file".
 
 **JS shim** (`bin/<name>.js`): resolves the platform package via `require.resolve()`, falls back to `npm install -g <platform-pkg>` if the optionalDependency was not installed (GitLab registry does not expose `os`/`cpu` fields in the packument). Exits with a clear error if the platform is unsupported.
 
